@@ -1,0 +1,52 @@
+/* PLEASE NOTE: THESE TAILWIND IMPORTS SHOULD NEVER BE DELETED */
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+/* DO NOT DELETE THESE TAILWIND IMPORTS, OTHERWISE THE STYLING WILL NOT RENDER AT ALL */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+body {
+  font-family: 'Poppins', sans-serif;
+  margin: 0;
+  padding: 0;
+}
+/* High Contrast Mode */
+body.high-contrast-mode {
+  filter: contrast(1.8) saturate(1.5);
+}
+body.high-contrast-mode * {
+  border-color: #000 !important;
+}
+body.high-contrast-mode img {
+  filter: contrast(1.2);
+}
+/* Large Text Mode */
+body.large-text-mode {
+  font-size: 1.125rem;
+}
+body.large-text-mode h1 {
+  font-size: 3.5rem;
+}
+body.large-text-mode h2 {
+  font-size: 2.75rem;
+}
+body.large-text-mode h3 {
+  font-size: 2rem;
+}
+body.large-text-mode h4 {
+  font-size: 1.5rem;
+}
+body.large-text-mode p,
+body.large-text-mode span,
+body.large-text-mode label,
+body.large-text-mode button {
+  font-size: 1.25rem;
+}
+body.large-text-mode .text-sm {
+  font-size: 1.125rem;
+}
+body.large-text-mode .text-lg {
+  font-size: 1.5rem;
+}
+body.large-text-mode .text-xl {
+  font-size: 1.75rem;
+}
