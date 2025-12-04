@@ -36,17 +36,17 @@ export const projects: Project[] = [{
   lat: 7.9833,
   lng: -73.5167
 }, {
-  name: 'Minigranja San Martín Norte 2',
-  municipality: 'San Martín',
-  department: 'Cesar',
-  lat: 7.9833,
-  lng: -73.5167
+  name: 'Minigranja Cimitarra Norte',
+  municipality: 'Cimitarra',
+  department: 'Santander',
+  lat: 6.4372029,
+  lng: -73.9788318
 }, {
-  name: 'Minigranja San Martín Norte 3',
-  municipality: 'San Martín',
-  department: 'Cesar',
-  lat: 7.9833,
-  lng: -73.5167
+  name: 'Minigranja La Unión Oriente',
+  municipality: 'La Unión',
+  department: 'Valle del Cauca',
+  lat: 4.518858,
+  lng: -76.061487
 }, {
   name: 'Minigranja Gamarra Norte',
   municipality: 'Gamarra',
