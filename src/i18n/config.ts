@@ -92,7 +92,7 @@ const resources = {
         sidebar: {
           contactTitle: 'Otras formas de contacto',
           contactEmail: 'conectemos@sunfactory.io',
-          contactPhone: '+57 300 123 4567',
+          contactPhone: '+57 301 695 3489',
           contactWhatsApp: 'WhatsApp',
           commitmentsTitle: 'Nuestros Compromisos',
           commitment1: 'Respuesta oportuna en máximo 15 días hábiles',
