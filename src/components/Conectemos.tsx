@@ -228,12 +228,12 @@ export function Conectemos() {
                     {t('connect.sidebar.contactPhone')}
                   </span>
                 </div>
-                <div className="pt-2">
+                {/* <div className="pt-2">
                   <a href="https://wa.me/573001234567" target="_blank" rel="noopener noreferrer" className="inline-flex items-center bg-[#25D366] text-white px-6 py-2 rounded-full font-medium hover:bg-[#20BA5A] transition-colors text-sm">
                     <MessageCircle className="mr-2" size={16} />
                     {t('connect.sidebar.contactWhatsApp')}
                   </a>
-                </div>
+                </div> */}
               </div>
               <div className="border-t pt-6">
                 <h3 className="text-lg font-bold text-black mb-4 flex items-center">
