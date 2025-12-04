@@ -47,7 +47,7 @@ export function Footer() {
             </nav>
           </div>
           <div>
-            <h4 className="font-bold mb-4">{t('footer.followUs')}</h4>
+            {/* <h4 className="font-bold mb-4">{t('footer.followUs')}</h4>
             <div className="flex space-x-4 mb-4">
               <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="hover:text-[#753bbd] transition-colors">
                 <Instagram size={24} />
@@ -55,7 +55,7 @@ export function Footer() {
               <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="hover:text-[#753bbd] transition-colors">
                 <Linkedin size={24} />
               </a>
-            </div>
+            </div> */}
             <div className="flex items-center space-x-2">
               <button onClick={() => changeLanguage('es')} className={`hover:text-[#753bbd] transition-colors ${i18n.language === 'es' ? 'underline' : ''}`}>
                 ES
