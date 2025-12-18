@@ -1,18 +1,8 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Send, Search, X, CheckCircle, Mail, Phone, MessageCircle, CheckCircle2 } from 'lucide-react';
-interface Submission {
-  filingNumber: string;
-  name: string;
-  email: string;
-  phone: string;
-  location: string;
-  category: string;
-  message: string;
-  date: string;
-  status: 'inReview' | 'responded' | 'closed';
-  anonymous: boolean;
-}
+import { Send, Search, X, CheckCircle, Mail, Phone, CheckCircle2, Loader2 } from 'lucide-react';
+import { createPQRS, getPQRSById } from '../services/pqrsService';
+import type { PQRSResponse, PQRSCategory } from '../types/pqrs';
 export function Conectemos() {
   const {
     t
@@ -30,42 +20,56 @@ export function Conectemos() {
   const [trackingNumber, setTrackingNumber] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [generatedFilingNumber, setGeneratedFilingNumber] = useState('');
-  const [trackedSubmission, setTrackedSubmission] = useState<Submission | null>(null);
+  const [trackedSubmission, setTrackedSubmission] = useState<PQRSResponse | null>(null);
   const [showTrackingResult, setShowTrackingResult] = useState(false);
-  const generateFilingNumber = () => {
-    const submissions = JSON.parse(localStorage.getItem('pqrsf_submissions') || '[]');
-    const nextNumber = submissions.length + 1;
-    return `PQRSF-${String(nextNumber).padStart(4, '0')}`;
-  };
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isTracking, setIsTracking] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const filingNumber = generateFilingNumber();
-    const submission: Submission = {
-      filingNumber,
-      name: formData.anonymous ? 'Anónimo' : formData.name,
-      email: formData.anonymous ? '' : formData.email,
-      phone: formData.phone,
-      location: formData.location,
-      category: formData.category,
-      message: formData.message,
-      date: new Date().toISOString(),
-      status: 'inReview',
-      anonymous: formData.anonymous
-    };
-    const submissions = JSON.parse(localStorage.getItem('pqrsf_submissions') || '[]');
-    submissions.push(submission);
-    localStorage.setItem('pqrsf_submissions', JSON.stringify(submissions));
-    setGeneratedFilingNumber(filingNumber);
-    setShowConfirmation(true);
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      location: '',
-      category: '',
-      message: '',
-      anonymous: false
-    });
+    setIsSubmitting(true);
+    setErrorMessage('');
+
+    try {
+      // Map form category to API category
+      const categoryMap: Record<string, PQRSCategory> = {
+        'peticion': 'petition',
+        'queja': 'complaint',
+        'reclamo': 'claim',
+        'sugerencia': 'suggestion',
+        'felicitacion': 'congratulation'
+      };
+
+      const response = await createPQRS({
+        name: formData.anonymous ? 'Anónimo' : formData.name,
+        email: formData.anonymous ? undefined : formData.email,
+        phone: formData.phone,
+        message: formData.message,
+        location: formData.location,
+        category: categoryMap[formData.category] || 'petition',
+      });
+
+      if (response.success && response.data) {
+        setGeneratedFilingNumber(response.data.filing_number || response.data.id);
+        setShowConfirmation(true);
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          location: '',
+          category: '',
+          message: '',
+          anonymous: false
+        });
+      } else {
+        setErrorMessage(response.message || 'Error al enviar la solicitud. Por favor intenta nuevamente.');
+      }
+    } catch (error) {
+      console.error('Error submitting PQRS:', error);
+      setErrorMessage('Error al enviar la solicitud. Por favor intenta nuevamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const {
@@ -78,11 +82,33 @@ export function Conectemos() {
       [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
     }));
   };
-  const handleTracking = () => {
-    const submissions: Submission[] = JSON.parse(localStorage.getItem('pqrsf_submissions') || '[]');
-    const found = submissions.find(s => s.filingNumber === trackingNumber);
-    setTrackedSubmission(found || null);
-    setShowTrackingResult(true);
+  const handleTracking = async () => {
+    if (!trackingNumber.trim()) {
+      return;
+    }
+
+    setIsTracking(true);
+    setErrorMessage('');
+
+    try {
+      const response = await getPQRSById(trackingNumber);
+      console.log('Tracking response:', response);
+      
+      if (response.success && response.data) {
+        console.log('Setting tracked submission:', response.data);
+        console.log('Created at value:', response.data.created_at);
+        console.log('Status value:', response.data.status);
+        setTrackedSubmission(response.data);
+      } else {
+        setTrackedSubmission(null);
+      }
+      setShowTrackingResult(true);
+    } catch (error) {
+      console.error('Error tracking PQRS:', error);
+      setErrorMessage('Error al consultar la solicitud. Por favor intenta nuevamente.');
+    } finally {
+      setIsTracking(false);
+    }
   };
   const closeConfirmation = () => {
     setShowConfirmation(false);
@@ -95,6 +121,7 @@ export function Conectemos() {
   };
   const getStatusText = (status: string) => {
     switch (status) {
+      case 'pending':
       case 'inReview':
         return t('connect.status.inReview');
       case 'responded':
@@ -103,6 +130,20 @@ export function Conectemos() {
         return t('connect.status.closed');
       default:
         return status;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+      case 'inReview':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'responded':
+        return 'bg-blue-100 text-blue-800';
+      case 'closed':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
   return <section id="connect" className="py-20 bg-gray-50">
@@ -129,6 +170,11 @@ export function Conectemos() {
               </button>
             </div>
             {viewMode === 'form' ? <div className="bg-white rounded-lg shadow-lg p-8">
+                {errorMessage && (
+                  <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                    {errorMessage}
+                  </div>
+                )}
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {!formData.anonymous && <>
                       <div>
@@ -191,20 +237,57 @@ export function Conectemos() {
                       {t('connect.form.anonymous')}
                     </label>
                   </div>
-                  <button type="submit" className="w-full bg-[#f89400] text-white px-6 py-3 rounded-full font-medium hover:bg-[#d97f00] transition-colors flex items-center justify-center">
-                    <Send className="mr-2" size={20} />
-                    {t('connect.form.submit')}
+                  <button 
+                    type="submit" 
+                    disabled={isSubmitting}
+                    className="w-full bg-[#f89400] text-white px-6 py-3 rounded-full font-medium hover:bg-[#d97f00] transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 animate-spin" size={20} />
+                        Enviando...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="mr-2" size={20} />
+                        {t('connect.form.submit')}
+                      </>
+                    )}
                   </button>
                 </form>
               </div> : <div className="bg-white rounded-lg shadow-lg p-8">
                 <h3 className="text-xl font-bold text-black mb-6">
                   {t('connect.form.tracking')}
                 </h3>
+                {errorMessage && (
+                  <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                    {errorMessage}
+                  </div>
+                )}
                 <div className="space-y-4">
-                  <input type="text" value={trackingNumber} onChange={e => setTrackingNumber(e.target.value)} placeholder={t('connect.form.trackingPlaceholder')} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#753bbd] focus:border-transparent" />
-                  <button onClick={handleTracking} className="w-full bg-[#753bbd] text-white px-6 py-3 rounded-full hover:bg-[#5f2f9a] transition-colors flex items-center justify-center">
-                    <Search className="mr-2" size={20} />
-                    {t('connect.form.trackButton')}
+                  <input 
+                    type="text" 
+                    value={trackingNumber} 
+                    onChange={e => setTrackingNumber(e.target.value)} 
+                    placeholder={t('connect.form.trackingPlaceholder')} 
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#753bbd] focus:border-transparent" 
+                  />
+                  <button 
+                    onClick={handleTracking} 
+                    disabled={isTracking || !trackingNumber.trim()}
+                    className="w-full bg-[#753bbd] text-white px-6 py-3 rounded-full hover:bg-[#5f2f9a] transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isTracking ? (
+                      <>
+                        <Loader2 className="mr-2 animate-spin" size={20} />
+                        Consultando...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="mr-2" size={20} />
+                        {t('connect.form.trackButton')}
+                      </>
+                    )}
                   </button>
                 </div>
               </div>}
@@ -311,7 +394,7 @@ export function Conectemos() {
                       {t('connect.status.filing')}
                     </p>
                     <p className="text-lg font-bold text-[#753bbd]">
-                      {trackedSubmission.filingNumber}
+                      {trackedSubmission.filing_number || trackedSubmission.id}
                     </p>
                   </div>
                   <div>
@@ -319,17 +402,45 @@ export function Conectemos() {
                       {t('connect.status.date')}
                     </p>
                     <p className="text-lg font-medium text-black">
-                      {new Date(trackedSubmission.date).toLocaleDateString()}
+                      {(() => {
+                        try {
+                          if (!trackedSubmission.created_at) return 'N/A';
+                          const date = new Date(trackedSubmission.created_at);
+                          if (isNaN(date.getTime())) return 'N/A';
+                          return date.toLocaleDateString('es-ES', { 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          });
+                        } catch (e) {
+                          console.error('Error parsing date:', e);
+                          return 'N/A';
+                        }
+                      })()}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-[#595959] mb-1">
                       {t('connect.status.currentStatus')}
                     </p>
-                    <div className={`inline-block px-4 py-2 rounded-full font-medium ${trackedSubmission.status === 'inReview' ? 'bg-yellow-100 text-yellow-800' : trackedSubmission.status === 'responded' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
+                    <div className={`inline-block px-4 py-2 rounded-full font-medium ${getStatusColor(trackedSubmission.status)}`}>
                       {getStatusText(trackedSubmission.status)}
                     </div>
                   </div>
+                  {trackedSubmission.name && (
+                    <div>
+                      <p className="text-sm text-[#595959] mb-1">Nombre</p>
+                      <p className="text-lg font-medium text-black">{trackedSubmission.name}</p>
+                    </div>
+                  )}
+                  {trackedSubmission.location && (
+                    <div>
+                      <p className="text-sm text-[#595959] mb-1">Ubicación</p>
+                      <p className="text-lg font-medium text-black">{trackedSubmission.location}</p>
+                    </div>
+                  )}
                 </div>
               </> : <>
                 <h3 className="text-2xl font-bold text-black mb-4 text-center">
